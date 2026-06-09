@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import HistoryClient from '@/components/history-client';
+import nextDynamic from 'next/dynamic';
+
+const HistoryClient = nextDynamic(() => import('@/components/history-client'), {
+  ssr: true,
+});
 
 export const dynamic = 'force-dynamic';
 

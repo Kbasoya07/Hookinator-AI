@@ -1,9 +1,17 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Profile - Hookinator AI',
+  title: 'Profile Settings | Hookinator AI',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default function ProfileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

@@ -15,7 +15,31 @@ export default function Footer() {
               © {currentYear} Hookinator AI. All rights reserved.
             </span>
           </div>
-          <div className="flex justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <Link 
+              href="/" 
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Home
+            </Link>
+            <Link 
+              href="/pricing" 
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link 
+              href="/optimizer" 
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Optimizer
+            </Link>
+            <Link 
+              href="/blog" 
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Blog
+            </Link>
             <Link 
               href="/privacy" 
               className="text-xs text-gray-500 hover:text-gray-400 transition-colors"

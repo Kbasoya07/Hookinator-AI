@@ -19,6 +19,7 @@ export default function Navbar() {
     { label: 'Dashboard', href: '/dashboard' },
     { label: 'Optimizer', href: '/optimizer' },
     { label: 'Pricing', href: '/pricing' },
+    { label: 'Blog', href: '/blog' },
   ];
 
   const colors: AccentColor[] = ['pink', 'blue', 'green', 'cyan', 'orange'];
