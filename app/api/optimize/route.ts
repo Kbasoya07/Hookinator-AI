@@ -1,3 +1,7 @@
+export const runtime = 'edge';
+export const preferredRegion = 'bom1';
+export const maxDuration = 30;
+
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { optimizeHook, generateMetadata } from '@/lib/gemini';
@@ -42,19 +46,83 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Deduct credit atomically using DB-level RPC function
-    const { data: creditDeducted, error: rpcError } = await adminClient
+    // 4. Deduct credit (try RPC first, fallback to JS queries if missing)
+    let creditDeducted = false;
+
+    const { data: rpcData, error: rpcError } = await adminClient
       .rpc('deduct_credit', {
         user_id: user.id,
         tool_type: toolType,
       });
 
-    if (rpcError) {
-      console.error('RPC credit deduction failed:', rpcError);
-      return NextResponse.json(
-        { error: 'Failed to process account limits.' },
-        { status: 500 }
-      );
+    if (!rpcError) {
+      creditDeducted = !!rpcData;
+    } else {
+      console.warn('RPC credit deduction failed, trying JS fallback:', rpcError.message);
+
+      // Fallback: SELECT current credits
+      const { data: profile, error: selectError } = await adminClient
+        .from('profiles')
+        .select('monthly_credits, top_up_credits, optimizations_left, generations_left, hashtags_left')
+        .eq('id', user.id)
+        .single();
+
+      if (selectError || !profile) {
+        console.error('JS select fallback failed:', selectError);
+        return NextResponse.json(
+          { error: 'Failed to process account limits.' },
+          { status: 500 }
+        );
+      }
+
+      let updateData: Record<string, number> = {};
+      let hasCredit = false;
+
+      if ((profile.monthly_credits ?? 0) > 0) {
+        updateData = { monthly_credits: profile.monthly_credits - 1 };
+        hasCredit = true;
+      } else if ((profile.top_up_credits ?? 0) > 0) {
+        updateData = { top_up_credits: profile.top_up_credits - 1 };
+        hasCredit = true;
+      } else {
+        if (toolType === 'optimize') {
+          if ((profile.optimizations_left ?? 0) > 0) {
+            updateData = { optimizations_left: profile.optimizations_left - 1 };
+            hasCredit = true;
+          }
+        } else if (toolType === 'generate') {
+          if ((profile.generations_left ?? 0) > 0 && (profile.hashtags_left ?? 0) >= 7) {
+            updateData = {
+              generations_left: profile.generations_left - 1,
+              hashtags_left: profile.hashtags_left - 7,
+            };
+            hasCredit = true;
+          }
+        }
+      }
+
+      if (!hasCredit) {
+        return NextResponse.json(
+          { error: 'Limit reached. Upgrade to Pro.' },
+          { status: 403 }
+        );
+      }
+
+      // UPDATE the profile with deducted credits
+      const { error: updateError } = await adminClient
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('JS update fallback failed:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to process account limits.' },
+          { status: 500 }
+        );
+      }
+
+      creditDeducted = true;
     }
 
     if (!creditDeducted) {
