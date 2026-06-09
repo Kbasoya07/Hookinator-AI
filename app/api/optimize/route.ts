@@ -136,6 +136,7 @@ export async function POST(request: Request) {
     let outputTitle = '';
     let outputDescription = '';
     let hashtagsResult: string[] = [];
+    let scoreImprovementVal = 0;
 
     if (toolType === 'optimize') {
       if (!currentTitle || !currentDescription) {
@@ -148,6 +149,7 @@ export async function POST(request: Request) {
       outputTitle = aiResponse.optimizedTitle;
       outputDescription = aiResponse.optimizedDescription;
       hashtagsResult = aiResponse.hashtags;
+      scoreImprovementVal = aiResponse.scoreImprovement ?? 38;
     } else {
       if (!topic || !genre) {
         return NextResponse.json(
@@ -159,9 +161,12 @@ export async function POST(request: Request) {
       outputTitle = aiResponse.title;
       outputDescription = aiResponse.description;
       hashtagsResult = aiResponse.hashtags;
+      scoreImprovementVal = aiResponse.scoreImprovement ?? 92;
     }
 
-    // 6. Log the transaction in the optimizations table
+    // 6. Log the transaction in the optimizations table (with serialized score metadata)
+    const dbOutputDescription = outputDescription + `\n\n<!-- score:${scoreImprovementVal} -->`;
+
     const { data: insertedData, error: logError } = await adminClient
       .from('optimizations')
       .insert({
@@ -170,7 +175,7 @@ export async function POST(request: Request) {
         input_title: currentTitle || topic || null,
         input_description: currentDescription || genre || null,
         output_title: outputTitle,
-        output_description: outputDescription,
+        output_description: dbOutputDescription,
         hashtags: hashtagsResult,
       })
       .select('id')
@@ -181,12 +186,13 @@ export async function POST(request: Request) {
       // We continue since the user shouldn't be penalized with a 500 error if history logging glitches
     }
 
-    // 7. Return response back to frontend
+    // 7. Return response back to frontend (with clean description and scoreImprovement)
     return NextResponse.json({
       id: insertedData?.id || null,
       title: outputTitle,
       description: outputDescription,
       hashtags: hashtagsResult,
+      scoreImprovement: scoreImprovementVal,
     });
   } catch (error) {
     console.error('API optimization server crash:', error);

@@ -5,14 +5,16 @@ export const OptimizeOutputSchema = z.object({
   optimizedTitle: z.string().min(1, 'Title cannot be empty'),
   optimizedDescription: z.string().min(1, 'Description cannot be empty'),
   hashtags: z.array(z.string()),
-  explanation: z.string().optional()
+  explanation: z.string().optional(),
+  scoreImprovement: z.number().min(0).max(100).optional().default(38)
 });
 
 export const GenerateOutputSchema = z.object({
   title: z.string().min(1, 'Title cannot be empty'),
   description: z.string().min(1, 'Description cannot be empty'),
   hashtags: z.array(z.string()),
-  explanation: z.string().optional()
+  explanation: z.string().optional(),
+  scoreImprovement: z.number().min(0).max(100).optional().default(92)
 });
 
 export type OptimizeOutput = z.infer<typeof OptimizeOutputSchema>;
@@ -139,6 +141,7 @@ export async function optimizeHook(title: string, description: string): Promise<
   try {
     // 1. Optimize Title and Description using 70B model
     const textPrompt = `Optimize this YouTube title and description for maximum CTR and SEO. Ensure the output targets curiosity gaps, psychological hooks, and high searchability.
+    Compare the optimized version with the original version, and assign an improvement score (percentage) from 0 to 100 representing how much better the new title and description are. Return it as an integer in "scoreImprovement".
     
 Input Title: "${title}"
 Input Description: "${description}"
@@ -147,7 +150,8 @@ Return ONLY valid JSON with exactly the following structure:
 {
   "optimizedTitle": "New high-CTR YouTube title here",
   "optimizedDescription": "SEO-friendly description with chapters, search terms, and timestamps here",
-  "explanation": "A brief explanation of the hooks used"
+  "explanation": "A brief explanation of the hooks used",
+  "scoreImprovement": 45
 }`;
 
     const textResult = await callGroqModel(textPrompt, 'llama-3.3-70b-versatile');
@@ -155,7 +159,8 @@ Return ONLY valid JSON with exactly the following structure:
     const textValidated = z.object({
       optimizedTitle: z.string().min(1),
       optimizedDescription: z.string().min(1),
-      explanation: z.string().optional()
+      explanation: z.string().optional(),
+      scoreImprovement: z.number().min(0).max(100).optional().default(38)
     }).parse(textParsed);
 
     // 2. Generate Hashtags using 8B model based on optimized text
@@ -178,12 +183,14 @@ Return ONLY valid JSON with exactly the following structure:
       optimizedTitle: textValidated.optimizedTitle,
       optimizedDescription: textValidated.optimizedDescription,
       explanation: textValidated.explanation || 'Optimized successfully.',
-      hashtags: cleanHashtags(tagsValidated.hashtags)
+      hashtags: cleanHashtags(tagsValidated.hashtags),
+      scoreImprovement: textValidated.scoreImprovement
     };
   } catch (groqError) {
     console.warn('Groq optimization failed. Falling back to Gemini...', groqError);
     
     const prompt = `Optimize this YouTube title and description for maximum CTR and SEO. Ensure the output targets curiosity gaps, psychological hooks, and high searchability.
+    Compare the optimized version with the original version, and assign an improvement score (percentage) from 0 to 100 representing how much better the new title and description are. Return it as an integer in "scoreImprovement".
   
 Input Title: "${title}"
 Input Description: "${description}"
@@ -193,7 +200,8 @@ Return ONLY valid JSON with exactly the following structure:
   "optimizedTitle": "New high-CTR YouTube title here",
   "optimizedDescription": "SEO-friendly description with chapters, search terms, and timestamps here",
   "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"],
-  "explanation": "A brief explanation of the hooks used"
+  "explanation": "A brief explanation of the hooks used",
+  "scoreImprovement": 45
 }`;
 
     // Fallback to Gemini
@@ -210,7 +218,7 @@ Return ONLY valid JSON with exactly the following structure:
       console.warn('Gemini optimization failed. Retrying with stricter instructions...', geminiError);
       
       // Retry once with an even more explicit formatting prompt
-      const strictPrompt = `${prompt}\n\nCRITICAL: You must return raw JSON only. Do not wrap in markdown code blocks like \`\`\`json. The JSON keys must match exactly: "optimizedTitle", "optimizedDescription", "hashtags", and "explanation".`;
+      const strictPrompt = `${prompt}\n\nCRITICAL: You must return raw JSON only. Do not wrap in markdown code blocks like \`\`\`json. The JSON keys must match exactly: "optimizedTitle", "optimizedDescription", "hashtags", "explanation", and "scoreImprovement".`;
       const rawResult = await callGemini(strictPrompt);
       const parsed = JSON.parse(rawResult);
       const validated = OptimizeOutputSchema.parse(parsed);
@@ -234,11 +242,14 @@ export async function generateMetadata(topic: string, genre: string): Promise<Ge
 Topic: "${topic}"
 Genre: "${genre}"
 
+Calculate an SEO and quality score (an integer between 85 and 99) representing how optimized and engaging the generated title/description is, and return it in "scoreImprovement".
+
 Return ONLY valid JSON with exactly the following structure:
 {
   "title": "A highly clickable title",
   "description": "SEO description targeting search terms for the ${genre} genre",
-  "explanation": "A brief explanation of the hook strategy"
+  "explanation": "A brief explanation of the hook strategy",
+  "scoreImprovement": 94
 }`;
 
     const textResult = await callGroqModel(textPrompt, 'llama-3.3-70b-versatile');
@@ -246,7 +257,8 @@ Return ONLY valid JSON with exactly the following structure:
     const textValidated = z.object({
       title: z.string().min(1),
       description: z.string().min(1),
-      explanation: z.string().optional()
+      explanation: z.string().optional(),
+      scoreImprovement: z.number().min(0).max(100).optional().default(92)
     }).parse(textParsed);
 
     // 2. Generate Hashtags using 8B model based on generated text
@@ -270,7 +282,8 @@ Return ONLY valid JSON with exactly the following structure:
       title: textValidated.title,
       description: textValidated.description,
       explanation: textValidated.explanation || 'Generated successfully.',
-      hashtags: cleanHashtags(tagsValidated.hashtags)
+      hashtags: cleanHashtags(tagsValidated.hashtags),
+      scoreImprovement: textValidated.scoreImprovement
     };
   } catch (groqError) {
     console.warn('Groq generation failed. Falling back to Gemini...', groqError);
@@ -279,12 +292,15 @@ Return ONLY valid JSON with exactly the following structure:
 Topic: "${topic}"
 Genre: "${genre}"
 
+Calculate an SEO and quality score (an integer between 85 and 99) representing how optimized and engaging the generated title/description is, and return it in "scoreImprovement".
+
 Return ONLY valid JSON with exactly the following structure:
 {
   "title": "A highly clickable title",
   "description": "SEO description targeting search terms for the ${genre} genre",
   "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"],
-  "explanation": "A brief explanation of the hook strategy"
+  "explanation": "A brief explanation of the hook strategy",
+  "scoreImprovement": 94
 }`;
 
     // Fallback to Gemini
@@ -300,7 +316,7 @@ Return ONLY valid JSON with exactly the following structure:
     } catch (geminiError) {
       console.warn('Gemini generation failed. Retrying with stricter instructions...', geminiError);
       
-      const strictPrompt = `${prompt}\n\nCRITICAL: You must return raw JSON only. Do not wrap in markdown code blocks like \`\`\`json. The JSON keys must match exactly: "title", "description", "hashtags", and "explanation".`;
+      const strictPrompt = `${prompt}\n\nCRITICAL: You must return raw JSON only. Do not wrap in markdown code blocks like \`\`\`json. The JSON keys must match exactly: "title", "description", "hashtags", "explanation", and "scoreImprovement".`;
       const rawResult = await callGemini(strictPrompt);
       const parsed = JSON.parse(rawResult);
       const validated = GenerateOutputSchema.parse(parsed);

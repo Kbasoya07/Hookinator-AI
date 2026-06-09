@@ -189,6 +189,11 @@ export default function HistoryClient({
                 minute: '2-digit'
               });
 
+              // Parse score if it was serialized into output_description
+              const scoreMatch = item.output_description.match(/<!-- score:(\d+) -->/);
+              const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+              const cleanDescription = item.output_description.replace(/[\r\n]*<!-- score:\d+ -->/, '');
+
               return (
                 <div
                   key={item.id}
@@ -215,6 +220,14 @@ export default function HistoryClient({
                         >
                           {item.tool_type === 'optimize' ? 'Optimize' : 'Generate'}
                         </Badge>
+                        {score !== null && (
+                          <Badge
+                            variant="outline"
+                            className="border-[var(--accent-color)]/25 bg-[var(--accent-color)]/10 text-[var(--accent-color)] text-[10px] font-semibold px-2 py-0.5"
+                          >
+                            {item.tool_type === 'optimize' ? `+${score}% Improvement` : `Score: ${score}%`}
+                          </Badge>
+                        )}
                         <span className="flex items-center gap-1 text-zinc-500 font-medium">
                           <Calendar className="h-3 w-3" />
                           {formattedDate}
@@ -310,7 +323,7 @@ export default function HistoryClient({
                               </button>
                               <span className="text-zinc-700">|</span>
                               <button
-                                onClick={() => handleCopy(item.output_description, item.id, 'desc')}
+                                onClick={() => handleCopy(cleanDescription, item.id, 'desc')}
                                 className="text-[10px] text-zinc-500 hover:text-white flex items-center gap-1 font-semibold transition-colors cursor-pointer"
                               >
                                 {copiedId === item.id && copiedType === 'desc' ? (
@@ -340,7 +353,7 @@ export default function HistoryClient({
                                 Optimized Description
                               </span>
                               <p className="text-xs text-zinc-300 font-normal leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto font-sans">
-                                {item.output_description}
+                                {cleanDescription}
                               </p>
                             </div>
                           </div>
@@ -366,14 +379,14 @@ export default function HistoryClient({
                               className="text-[10px] text-zinc-500 hover:text-white flex items-center gap-1 font-semibold transition-colors cursor-pointer"
                             >
                               {copiedId === item.id && copiedType === 'tags' ? (
-                                <>
-                                  <Check className="h-3 w-3 text-green-500" /> Hashtags Copied
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-3 w-3" /> Copy All Tags
-                                </>
-                              )}
+                                  <>
+                                    <Check className="h-3 w-3 text-green-500" /> Hashtags Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3 w-3" /> Copy All Tags
+                                  </>
+                                )}
                             </button>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -395,7 +408,7 @@ export default function HistoryClient({
                       <div className="border-t border-zinc-850 pt-4 flex justify-between items-center">
                         <button
                           onClick={() => {
-                            const fullMeta = `TITLE:\n${item.output_title}\n\nDESCRIPTION:\n${item.output_description}\n\nHASHTAGS:\n${item.hashtags.map(t => `#${t}`).join(' ')}`;
+                            const fullMeta = `TITLE:\n${item.output_title}\n\nDESCRIPTION:\n${cleanDescription}\n\nHASHTAGS:\n${item.hashtags.map(t => `#${t}`).join(' ')}`;
                             handleCopy(fullMeta, item.id, 'all');
                           }}
                           className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:text-white px-4 py-2 rounded-xl transition-colors cursor-pointer"

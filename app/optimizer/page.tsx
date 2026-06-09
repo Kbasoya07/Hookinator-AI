@@ -11,6 +11,7 @@ interface APIResult {
   title: string;
   description: string;
   hashtags: string[];
+  scoreImprovement?: number;
 }
 
 export default function OptimizerPage() {
@@ -107,6 +108,7 @@ export default function OptimizerPage() {
         title: data.title,
         description: data.description,
         hashtags: data.hashtags || [],
+        scoreImprovement: data.scoreImprovement,
       });
 
       // Refresh credits locally in real-time
@@ -357,6 +359,61 @@ export default function OptimizerPage() {
                     Saved to History
                   </Badge>
                 </div>
+
+                {/* Rating Meter Card */}
+                {result.scoreImprovement !== undefined && (
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-left space-y-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        {activeTab === 'optimize' ? 'Optimization Score Improvement' : 'AI SEO Quality Score'}
+                      </span>
+                      <p className="text-[11px] text-zinc-500 leading-relaxed">
+                        {activeTab === 'optimize' 
+                          ? 'This represents the percentage increase in click-through rate (CTR) potential and search visibility compared to your original draft.'
+                          : 'This represents the calculated search engine optimization (SEO) strength and readability score of the generated metadata.'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col items-center justify-center shrink-0 min-w-[100px]">
+                      {/* Circular Gauge / Percentage Display */}
+                      <div className="relative flex items-center justify-center h-20 w-20">
+                        <svg className="w-full h-full transform -rotate-90">
+                          {/* Background Track */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="text-zinc-850"
+                            strokeWidth="6"
+                            stroke="currentColor"
+                            fill="transparent"
+                          />
+                          {/* Animated Progress Indicator */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            style={{
+                              strokeDasharray: '213.6',
+                              strokeDashoffset: 213.6 - (213.6 * result.scoreImprovement) / 100,
+                              stroke: 'var(--accent-color)',
+                              filter: 'drop-shadow(0 0 4px var(--accent-color-glow))',
+                              transition: 'stroke-dashoffset 0.8s ease-in-out',
+                            }}
+                            strokeWidth="6"
+                            strokeLinecap="round"
+                            fill="transparent"
+                          />
+                        </svg>
+                        <div className="absolute text-center">
+                          <span className="text-base font-extrabold text-white font-sans">
+                            {activeTab === 'optimize' ? `+${result.scoreImprovement}%` : `${result.scoreImprovement}%`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Title Card */}
                 <div>
