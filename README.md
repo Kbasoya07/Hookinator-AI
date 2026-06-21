@@ -60,9 +60,9 @@ The AI metadata engine uses a highly resilient failover pipeline:
 
 ---
 
-## ⚙️ Environment Variables (`.env.local`)
+##  Environment Variables (`.env.local`)
 
-To run this project locally, create a `.env.local` file with:
+To run this project locally, create a `.env.local` file with , also make sure to add .env file to gitignore when uploading to public to make sure no sensitive info is revealed online :
 
 ```env
 # Supabase Configuration
