@@ -9,8 +9,7 @@ import {
   ArrowRight, 
   FileText, 
   Hash, 
-  Cpu, 
-  Star 
+  Cpu 
 } from 'lucide-react';
 import { FAQSchema } from '@/components/structured-data';
 
@@ -207,30 +206,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonial Section */}
-      <section className="relative z-10 mx-auto max-w-4xl px-4 py-20 sm:px-6 lg:px-8">
-        <Card className="border-zinc-800 bg-zinc-900/30 p-8 md:p-12 text-center backdrop-blur-sm relative">
-          <div className="flex justify-center gap-1 text-yellow-500 mb-6">
-            <Star className="h-5 w-5 fill-current" />
-            <Star className="h-5 w-5 fill-current" />
-            <Star className="h-5 w-5 fill-current" />
-            <Star className="h-5 w-5 fill-current" />
-            <Star className="h-5 w-5 fill-current" />
-          </div>
-          <blockquote className="text-lg md:text-xl text-gray-300 italic leading-relaxed">
-            &ldquo;We optimized 5 of our back-catalog tech videos using Hookinator&apos;s title suggestions. Within 48 hours, our baseline impression click-through rate jumped from 4.2% to 8.9%. This tool is an absolute cheat code.&rdquo;
-          </blockquote>
-          <div className="mt-8 flex flex-col items-center">
-            <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-gray-300">
-              MK
-            </div>
-            <cite className="not-italic mt-3 block text-sm font-semibold text-white font-sans">
-              Marcus K.
-            </cite>
-            <span className="text-xs text-gray-500 mt-1">Tech Reviewer (140K Subscribers)</span>
-          </div>
-        </Card>
-      </section>
 
       {/* FAQ Section */}
       <section className="relative z-10 mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 border-t border-zinc-900/60">
